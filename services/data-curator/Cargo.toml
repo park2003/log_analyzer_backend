@@ -1,5 +1,5 @@
 [package]
-name = "data-curator-service"
+name = "data-curator"
 version = "0.1.0"
 edition = "2024"
 
@@ -26,7 +26,38 @@ uuid = { workspace = true }
 chrono = { workspace = true }
 reqwest = { workspace = true }
 async-trait = { workspace = true }
+dotenvy = { workspace = true }
 
+# Service-specific dependencies
+# gRPC health check
+tonic-health = "0.14"
+
+# Vector database support
+pgvector = { version = "0.4", features = ["sqlx"] }
+
+# AWS SDK for S3 operations
+aws-config = "1.5"
+aws-sdk-s3 = "1.65"
+
+# Image processing
+image = "0.25"
+
+# ML model inference (for CLIP embeddings)
+ort = { version = "^2.0.0-rc.10", features = ["download-binaries", "cuda"] }
+ndarray = "0.16"
+
+# Clustering algorithms
+linfa = "0.7"
+linfa-clustering = "0.7"
+
+# Additional utilities
+bytes = "1.9"
+futures = "0.3"
+once_cell = "1.20"
+rand = "0.9"
+
+# Common library
+savassan-common = { path = "../../libs/savassan-common" }
 
 [build-dependencies]
-tonic-build = { workspace = true }
+tonic-prost-build = { workspace = true }

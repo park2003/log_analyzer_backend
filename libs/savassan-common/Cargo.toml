@@ -1,7 +1,7 @@
 [package]
 name = "savassan-common"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 # Workspace dependencies
@@ -13,6 +13,14 @@ anyhow = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
+async-trait = { workspace = true }
 
-# Additional dependencies
-async-trait = "0.1"
+# For error handling
+sqlx = { workspace = true }
+tonic = { workspace = true }
+
+# For telemetry
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+tracing-opentelemetry = { workspace = true }

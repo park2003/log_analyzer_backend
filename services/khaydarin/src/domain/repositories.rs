@@ -1,16 +1,23 @@
 use async_trait::async_trait;
 use anyhow::Result;
-use crate::domain::models::{FineTuningJob, ProcessingRequest};
+use uuid::Uuid;
+use crate::domain::models::{KhaydarinLogEntry, ProcessingRequest};
 
+// Repository trait for Khaydarin service persistence
 #[async_trait]
-pub trait JobRepository: Send + Sync {
-    async fn create(&self, job: &FineTuningJob) -> Result<()>;
-    async fn get_by_id(&self, id: &str) -> Result<Option<FineTuningJob>>;
-    async fn update(&self, job: &FineTuningJob) -> Result<()>;
-}
-
-#[async_trait]
-pub trait ProcessingRepository: Send + Sync {
-    async fn save_request(&self, request: &ProcessingRequest) -> Result<()>;
-    async fn get_request(&self, request_id: &str) -> Result<Option<ProcessingRequest>>;
+pub trait KhaydarinRepository: Send + Sync {
+    // Log a processing request and its result
+    async fn log_request(&self, entry: &KhaydarinLogEntry) -> Result<()>;
+    
+    // Retrieve a log entry by request ID
+    async fn get_by_request_id(&self, request_id: &str) -> Result<Option<KhaydarinLogEntry>>;
+    
+    // Retrieve history for a specific user
+    async fn get_user_history(&self, user_id: &str, limit: usize) -> Result<Vec<KhaydarinLogEntry>>;
+    
+    // Update processing result for a request
+    async fn update_processing_result(&self, request_id: &str, entry: &KhaydarinLogEntry) -> Result<()>;
+    
+    // Check if a request ID already exists (for idempotency)
+    async fn request_exists(&self, request_id: &str) -> Result<bool>;
 }

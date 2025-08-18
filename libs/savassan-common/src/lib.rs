@@ -1,5 +1,8 @@
 // Common error types, utilities, and shared functionality
 
+pub mod errors;
+pub mod telemetry;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -8,16 +11,16 @@ use thiserror::Error;
 pub enum SavassanError {
     #[error("Database error: {0}")]
     Database(String),
-    
+
     #[error("External API error: {0}")]
     ExternalApi(String),
-    
+
     #[error("Validation error: {0}")]
     Validation(String),
-    
+
     #[error("Not found: {0}")]
     NotFound(String),
-    
+
     #[error("Internal error: {0}")]
     Internal(String),
 }

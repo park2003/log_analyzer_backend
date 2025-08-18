@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package savassan.v1;
+
+// Execution service provided by the flyte-integration service
+// Responsible for submitting and managing workflow executions in Flyte
+service ExecutionService {
+    // Submit a generated workflow definition for execution
+    rpc ExecuteWorkflow(ExecuteWorkflowRequest) returns (ExecuteWorkflowResponse);
+    
+    // Get the status of a workflow execution
+    rpc GetExecutionStatus(GetExecutionStatusRequest) returns (GetExecutionStatusResponse);
+}
+
+// --- Message Definitions ---
+
+message ExecuteWorkflowRequest {
+    string workflow_id = 1;
+    // JSON definition of the Flyte workflow graph
+    string flyte_workflow_definition_json = 2;
+}
+
+message ExecuteWorkflowResponse {
+    string execution_id = 1;
+    enum Status {
+        SUBMITTED = 0;
+        FAILED = 1;
+    }
+    Status status = 2;
+}
+
+message GetExecutionStatusRequest {
+    string execution_id = 1;
+}
+
+message GetExecutionStatusResponse {
+    string execution_id = 1;
+    enum Status {
+        PENDING = 0;
+        RUNNING = 1;
+        SUCCEEDED = 2;
+        FAILED = 3;
+        ABORTED = 4;
+        TIMED_OUT = 5;
+    }
+    Status status = 2;
+    string message = 3; // Optional status message or error details
+    string started_at = 4; // ISO 8601 timestamp
+    string completed_at = 5; // ISO 8601 timestamp, empty if still running
+}

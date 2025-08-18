@@ -1,13 +1,14 @@
 use serde_json::Value;
 use async_trait::async_trait;
+use anyhow::Result;
 
-// LLM 호출을 실행할 수 있는 모든 컴포넌트를 위한 트레이트.
+// Trait for any component that can execute LLM calls
 #[async_trait]
-pub trait Llm {
-    async fn invoke(&self, prompt: &str) -> Result<String, anyhow::Error>;
+pub trait Llm: Send + Sync {
+    async fn invoke(&self, prompt: &str) -> Result<String>;
 }
 
-// 플레이스홀더가 있는 프롬프트를 생성하기 위한 템플릿.
+// Template for generating prompts with placeholders
 pub struct PromptTemplate {
     template: String,
 }
@@ -18,19 +19,58 @@ impl PromptTemplate {
     }
 
     pub fn format(&self, context: &Value) -> String {
-        // {{user_prompt}}와 같은 플레이스홀더를 context의 값으로 바꾸는 로직
-        // TODO: Implement template substitution
-        self.template.clone()
+        let mut result = self.template.clone();
+        
+        // Replace placeholders like {{user_prompt}} with values from context
+        if let Value::Object(map) = context {
+            for (key, value) in map {
+                let placeholder = format!("{{{{{}}}}}", key);
+                let replacement = match value {
+                    Value::String(s) => s.clone(),
+                    _ => value.to_string(),
+                };
+                result = result.replace(&placeholder, &replacement);
+            }
+        }
+        
+        result
     }
 }
 
-// LLM의 문자열 출력을 구조화된 형식으로 파싱하기 위한 트레이트.
-#[async_trait]
-pub trait OutputParser {
-    fn parse(&self, output: &str) -> Result<Value, anyhow::Error>;
+// Trait for parsing LLM string output into structured format
+pub trait OutputParser: Send + Sync {
+    fn parse(&self, output: &str) -> Result<Value>;
 }
 
-// 모든 것을 하나로 묶는 체인.
+// JSON output parser implementation
+pub struct JsonOutputParser;
+
+impl OutputParser for JsonOutputParser {
+    fn parse(&self, output: &str) -> Result<Value> {
+        // Try to extract JSON from the output
+        // Handle cases where LLM wraps JSON in markdown code blocks
+        let cleaned = if output.contains("```json") {
+            output
+                .split("```json")
+                .nth(1)
+                .and_then(|s| s.split("```").next())
+                .unwrap_or(output)
+                .trim()
+        } else if output.contains("```") {
+            output
+                .split("```")
+                .nth(1)
+                .unwrap_or(output)
+                .trim()
+        } else {
+            output.trim()
+        };
+        
+        Ok(serde_json::from_str(cleaned)?)
+    }
+}
+
+// Chain that ties everything together
 pub struct LlmChain<L: Llm, P: OutputParser> {
     llm: L,
     prompt_template: PromptTemplate,
@@ -38,7 +78,15 @@ pub struct LlmChain<L: Llm, P: OutputParser> {
 }
 
 impl<L: Llm, P: OutputParser> LlmChain<L, P> {
-    pub async fn run(&self, context: &Value) -> Result<Value, anyhow::Error> {
+    pub fn new(llm: L, prompt_template: PromptTemplate, output_parser: P) -> Self {
+        Self {
+            llm,
+            prompt_template,
+            output_parser,
+        }
+    }
+    
+    pub async fn run(&self, context: &Value) -> Result<Value> {
         let formatted_prompt = self.prompt_template.format(context);
         let llm_output = self.llm.invoke(&formatted_prompt).await?;
         self.output_parser.parse(&llm_output)
