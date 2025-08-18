@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package savassan.data_curator.v1;
+
+service DataCuratorService {
+    // 큐레이션 프로세스를 시작합니다. 이것은 비동기 작업입니다.
+    rpc StartCuration(StartCurationRequest) returns (StartCurationResponse);
+    
+    // 큐레이션 작업의 상태와 결과를 가져옵니다.
+    rpc GetCurationStatus(GetCurationStatusRequest) returns (CurationStatus);
+    
+    // 능동 학습 루프를 위해 사용자로부터 피드백을 제공합니다.
+    rpc SubmitFeedback(SubmitFeedbackRequest) returns (SubmitFeedbackResponse);
+}
+
+message StartCurationRequest {
+    string project_id = 1;
+    string raw_data_uri = 2;  // 예: "s3://my-bucket/project-x/raw/"
+}
+
+message StartCurationResponse {
+    string curation_job_id = 1;
+}
+
+message GetCurationStatusRequest {
+    string curation_job_id = 1;
+}
+
+enum JobStatus {
+    PENDING = 0;
+    EMBEDDING = 1;
+    AWAITING_FEEDBACK = 2;
+    COMPLETED = 3;
+    FAILED = 4;
+}
+
+message ImageForFeedback {
+    string image_id = 1;
+    string image_uri = 2;  // UI에 표시할 URI
+}
+
+message CurationStatus {
+    string curation_job_id = 1;
+    JobStatus status = 2;
+    repeated ImageForFeedback images_for_feedback = 3;
+    string curated_dataset_uri = 4;  // COMPLETED일 때 채워짐
+}
+
+message Feedback {
+    string image_id = 1;
+    bool accepted = 2;  // 좋은 예시면 true, 아니면 false
+}
+
+message SubmitFeedbackRequest {
+    string curation_job_id = 1;
+    repeated Feedback feedback = 2;
+}
+
+message SubmitFeedbackResponse {
+    bool acknowledged = 1;
+}

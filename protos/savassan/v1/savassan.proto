@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package savassan.v1;
+
+// 인텔리전스 코어에서 제공하며, API 게이트웨이/오케스트레이터가 호출하는 서비스.
+service IntelligenceService {
+    // 자연어 프롬프트를 구조화된 워크플로우 계획으로 처리합니다.
+    rpc ProcessPrompt(ProcessPromptRequest) returns (ProcessPromptResponse);
+    
+    // 주어진 프로젝트에 대한 데이터 큐레이션 프로세스를 트리거합니다.
+    rpc CurateData(CurateDataRequest) returns (CurateDataResponse);
+}
+
+// 실행 계층에서 제공하며, 인텔리전스 코어가 호출하는 서비스.
+service ExecutionService {
+    // 생성된 워크플로우 정의를 실행하기 위해 제출합니다.
+    rpc ExecuteWorkflow(ExecuteWorkflowRequest) returns (ExecuteWorkflowResponse);
+}
+
+// --- 메시지 정의 ---
+
+message ProcessPromptRequest {
+    string session_id = 1;
+    string user_id = 2;
+    string natural_language_prompt = 3;
+}
+
+message ProcessPromptResponse {
+    string workflow_id = 1;
+    // 파인튜닝 계획의 구조화된 표현.
+    // JSON 문자열 또는 더 상세한 protobuf 메시지가 될 수 있습니다.
+    string structured_plan_json = 2;
+}
+
+message CurateDataRequest {
+    string project_id = 1;
+    // 아티팩트 저장소의 원시 데이터에 대한 포인터.
+    string raw_data_uri = 2;
+}
+
+message CurateDataResponse {
+    string curated_dataset_id = 1;
+    // 아티팩트 저장소의 큐레이션된 데이터에 대한 포인터.
+    string curated_data_uri = 2;
+}
+
+message ExecuteWorkflowRequest {
+    string workflow_id = 1;
+    // Flyte 워크플로우 그래프의 JSON 정의.
+    string flyte_workflow_definition_json = 2;
+}
+
+message ExecuteWorkflowResponse {
+    string execution_id = 1;
+    enum Status {
+        SUBMITTED = 0;
+        FAILED = 1;
+    }
+    Status status = 2;
+}

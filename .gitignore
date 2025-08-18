@@ -1,0 +1,54 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+*.env
+*.env.local
+
+# Logs
+*.log
+
+# Dependencies
+/node_modules/
+
+# Generated protobuf files
+*.pb.go
+*_pb2.py
+*_pb2_grpc.py
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+
+# Kubernetes
+*.kubeconfig
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+
+# Misc
+.cache/
+tmp/
+temp/
+
+.claude

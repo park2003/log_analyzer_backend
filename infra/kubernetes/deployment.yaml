@@ -1,0 +1,37 @@
+# Kubernetes deployment manifest placeholder
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: khaydarin-deployment
+  namespace: savassan
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: khaydarin
+  template:
+    metadata:
+      labels:
+        app: khaydarin
+    spec:
+      containers:
+      - name: khaydarin
+        image: khaydarin:latest
+        ports:
+        - containerPort: 50051
+        env:
+        - name: DATABASE_URL
+          value: "postgres://localhost/khaydarin"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: khaydarin-service
+  namespace: savassan
+spec:
+  selector:
+    app: khaydarin
+  ports:
+  - port: 50051
+    targetPort: 50051
+    protocol: TCP
