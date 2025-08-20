@@ -73,7 +73,7 @@ where
             }
             Err(e) => {
                 // Mark execution as failed
-                execution.set_error(format!("Failed to submit to Flyte: {}", e));
+                execution.set_error(format!("Failed to submit to Flyte: {e}"));
                 self.repository.update(&execution).await?;
                 Err(e)
             }

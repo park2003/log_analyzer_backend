@@ -78,7 +78,7 @@ impl StorageService for S3StorageService {
                             || key.ends_with(".png")
                             || key.ends_with(".webp")
                         {
-                            images.push(format!("s3://{}/{}", bucket, key));
+                            images.push(format!("s3://{bucket}/{key}"));
                         }
                     }
                 }
@@ -104,7 +104,7 @@ impl StorageService for S3StorageService {
             .key(&key)
             .send()
             .await
-            .context(format!("Failed to download object from S3: {}", uri))?;
+            .context(format!("Failed to download object from S3: {uri}"))?;
 
         let data = response
             .body
@@ -120,7 +120,7 @@ impl StorageService for S3StorageService {
 
         // Create a manifest file listing all curated images
         let manifest = data.join("\n");
-        let manifest_key = format!("{}/manifest.txt", prefix);
+        let manifest_key = format!("{prefix}/manifest.txt");
 
         self.client
             .put_object()
@@ -138,11 +138,11 @@ impl StorageService for S3StorageService {
             // Extract filename from source key
             let filename = source_key
                 .split('/')
-                .last()
+                .next_back()
                 .ok_or_else(|| anyhow::anyhow!("Invalid image URI: {}", image_uri))?;
 
-            let dest_key = format!("{}/{}", prefix, filename);
-            let copy_source = format!("{}/{}", source_bucket, source_key);
+            let dest_key = format!("{prefix}/{filename}");
+            let copy_source = format!("{source_bucket}/{source_key}");
 
             self.client
                 .copy_object()
@@ -151,7 +151,7 @@ impl StorageService for S3StorageService {
                 .copy_source(&copy_source)
                 .send()
                 .await
-                .context(format!("Failed to copy object: {}", image_uri))?;
+                .context(format!("Failed to copy object: {image_uri}"))?;
         }
 
         Ok(())
@@ -177,7 +177,7 @@ impl StorageService for LocalStorageService {
 
         let mut entries = tokio::fs::read_dir(&path)
             .await
-            .context(format!("Failed to read directory: {:?}", path))?;
+            .context(format!("Failed to read directory: {path:?}"))?;
 
         while let Some(entry) = entries.next_entry().await? {
             let path = entry.path();
@@ -197,7 +197,7 @@ impl StorageService for LocalStorageService {
         let path = self.base_path.join(uri);
         tokio::fs::read(&path)
             .await
-            .context(format!("Failed to read file: {:?}", path))
+            .context(format!("Failed to read file: {path:?}"))
     }
 
     async fn upload_dataset(&self, data: Vec<String>, uri: &str) -> Result<()> {
@@ -206,7 +206,7 @@ impl StorageService for LocalStorageService {
         // Create destination directory
         tokio::fs::create_dir_all(&dest_path)
             .await
-            .context(format!("Failed to create directory: {:?}", dest_path))?;
+            .context(format!("Failed to create directory: {dest_path:?}"))?;
 
         // Write manifest
         let manifest_path = dest_path.join("manifest.txt");
@@ -222,7 +222,7 @@ impl StorageService for LocalStorageService {
                 let dest = dest_path.join(filename);
                 tokio::fs::copy(&source, &dest)
                     .await
-                    .context(format!("Failed to copy file: {:?} -> {:?}", source, dest))?;
+                    .context(format!("Failed to copy file: {source:?} -> {dest:?}"))?;
             }
         }
 

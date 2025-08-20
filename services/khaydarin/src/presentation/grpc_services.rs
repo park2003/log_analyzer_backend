@@ -80,12 +80,12 @@ where
                     } => {
                         // Convert plan to protobuf Struct
                         let plan_json = serde_json::to_value(&plan).map_err(|e| {
-                            Status::internal(format!("Failed to serialize plan: {}", e))
+                            Status::internal(format!("Failed to serialize plan: {e}"))
                         })?;
 
                         let structured_plan = prost_types::Struct {
                             fields: convert_json_to_protobuf_map(plan_json).map_err(|e| {
-                                Status::internal(format!("Failed to convert plan: {}", e))
+                                Status::internal(format!("Failed to convert plan: {e}"))
                             })?,
                         };
 
@@ -96,10 +96,10 @@ where
                         Ok(Response::new(response))
                     }
                     ProcessingResult::LlmError { message } => {
-                        Err(Status::internal(format!("LLM error: {}", message)))
+                        Err(Status::internal(format!("LLM error: {message}")))
                     }
                     ProcessingResult::ParsingError { message, .. } => {
-                        Err(Status::internal(format!("Parsing error: {}", message)))
+                        Err(Status::internal(format!("Parsing error: {message}")))
                     }
                 }
             }

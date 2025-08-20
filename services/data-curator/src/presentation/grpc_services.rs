@@ -103,8 +103,8 @@ where
             .execute(req.project_id, req.raw_data_uri)
             .await
             .map_err(|e| {
-                tracing::error!("Failed to start curation: {}", e);
-                Status::internal(format!("Failed to start curation: {}", e))
+                tracing::error!("Failed to start curation: {e}");
+                Status::internal(format!("Failed to start curation: {e}"))
             })?;
 
         Ok(Response::new(StartCurationResponse {
@@ -119,15 +119,15 @@ where
         let req = request.into_inner();
 
         let job_id = Uuid::parse_str(&req.curation_job_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid job ID: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid job ID: {e}")))?;
 
         let job = self
             .get_status_use_case
             .execute(job_id)
             .await
             .map_err(|e| {
-                tracing::error!("Failed to get curation status: {}", e);
-                Status::internal(format!("Failed to get curation status: {}", e))
+                tracing::error!("Failed to get curation status: {e}");
+                Status::internal(format!("Failed to get curation status: {e}"))
             })?;
 
         match job {
@@ -158,7 +158,7 @@ where
                     curated_dataset_uri: job.curated_data_uri.unwrap_or_default(),
                 }))
             }
-            None => Err(Status::not_found(format!("Job {} not found", job_id))),
+            None => Err(Status::not_found(format!("Job {job_id} not found"))),
         }
     }
 
@@ -169,7 +169,7 @@ where
         let req = request.into_inner();
 
         let job_id = Uuid::parse_str(&req.curation_job_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid job ID: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid job ID: {e}")))?;
 
         let feedback: Vec<DomainImageFeedback> = req
             .feedback
@@ -191,8 +191,8 @@ where
             .execute(job_id, feedback)
             .await
             .map_err(|e| {
-                tracing::error!("Failed to submit feedback: {}", e);
-                Status::internal(format!("Failed to submit feedback: {}", e))
+                tracing::error!("Failed to submit feedback: {e}");
+                Status::internal(format!("Failed to submit feedback: {e}"))
             })?;
 
         Ok(Response::new(SubmitFeedbackResponse { acknowledged }))

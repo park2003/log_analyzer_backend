@@ -38,12 +38,12 @@ impl From<anyhow::Error> for ServiceError {
 impl From<ServiceError> for tonic::Status {
     fn from(err: ServiceError) -> Self {
         match err {
-            ServiceError::Database(e) => tonic::Status::internal(format!("Database error: {}", e)),
+            ServiceError::Database(e) => tonic::Status::internal(format!("Database error: {e}")),
             ServiceError::Serialization(e) => {
-                tonic::Status::internal(format!("Serialization error: {}", e))
+                tonic::Status::internal(format!("Serialization error: {e}"))
             }
             ServiceError::ExternalApi(e) => {
-                tonic::Status::unavailable(format!("External API error: {}", e))
+                tonic::Status::unavailable(format!("External API error: {e}"))
             }
             ServiceError::Validation(e) => tonic::Status::invalid_argument(e),
             ServiceError::NotFound(e) => tonic::Status::not_found(e),

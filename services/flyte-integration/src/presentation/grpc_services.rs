@@ -61,8 +61,8 @@ where
         // Parse the workflow JSON
         let workflow_json: serde_json::Value =
             serde_json::from_str(&req.flyte_workflow_definition_json).map_err(|e| {
-                tracing::error!("Failed to parse workflow JSON: {}", e);
-                Status::invalid_argument(format!("Invalid workflow JSON: {}", e))
+                tracing::error!("Failed to parse workflow JSON: {e}");
+                Status::invalid_argument(format!("Invalid workflow JSON: {e}"))
             })?;
 
         // Extract project and domain from the workflow definition or use defaults
@@ -126,7 +126,7 @@ where
         // Parse execution ID as UUID
         let execution_id = Uuid::parse_str(&req.execution_id).map_err(|e| {
             tracing::error!("Invalid execution ID format: {}", e);
-            Status::invalid_argument(format!("Invalid execution ID: {}", e))
+            Status::invalid_argument(format!("Invalid execution ID: {e}"))
         })?;
 
         // Get execution status through use cases
@@ -173,8 +173,8 @@ where
                 Ok(Response::new(response))
             }
             Err(e) => {
-                tracing::error!("Failed to get execution status: {}", e);
-                Err(Status::not_found(format!("Execution not found: {}", e)))
+                tracing::error!("Failed to get execution status: {e}");
+                Err(Status::not_found(format!("Execution not found: {e}")))
             }
         }
     }

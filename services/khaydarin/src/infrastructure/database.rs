@@ -61,16 +61,16 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             "#,
         )
-        .bind(&entry.id)
+        .bind(entry.id)
         .bind(&entry.request_id)
         .bind(&entry.user_id)
-        .bind(&entry.received_at)
+        .bind(entry.received_at)
         .bind(&entry.user_prompt)
         .bind(&entry.llm_prompt)
         .bind(&entry.llm_raw_response)
         .bind(&entry.structured_plan)
         .bind(status_str)
-        .bind(&entry.processing_time_ms)
+        .bind(entry.processing_time_ms)
         .execute(&self.pool)
         .await?;
 
@@ -190,7 +190,7 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
         .bind(&entry.llm_raw_response)
         .bind(&entry.structured_plan)
         .bind(status_str)
-        .bind(&entry.processing_time_ms)
+        .bind(entry.processing_time_ms)
         .bind(request_id)
         .execute(&self.pool)
         .await?;

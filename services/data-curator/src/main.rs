@@ -153,7 +153,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Data Curator gRPC server listening on {}", addr);
 
     // Configure health check service
-    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    let (health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
         .set_serving::<DataCuratorServiceServer<
             DataCuratorGrpcService<

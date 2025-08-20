@@ -26,7 +26,7 @@ impl PromptTemplate {
         // Replace placeholders like {{user_prompt}} with values from context
         if let Value::Object(map) = context {
             for (key, value) in map {
-                let placeholder = format!("{{{{{}}}}}", key);
+                let placeholder = format!("{{{{{key}}}}}");
                 let replacement = match value {
                     Value::String(s) => s.clone(),
                     _ => value.to_string(),

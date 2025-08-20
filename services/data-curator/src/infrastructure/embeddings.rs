@@ -61,8 +61,8 @@ impl ClipEmbeddingService {
         // Normalize using CLIP's normalization values
         // Mean: [0.48145466, 0.4578275, 0.40821073]
         // Std: [0.26862954, 0.26130258, 0.27577711]
-        let mean = [0.48145466, 0.4578275, 0.40821073];
-        let std = [0.26862954, 0.26130258, 0.27577711];
+        let mean: [f32; 3] = [0.48145466, 0.4578275, 0.40821073];
+        let std: [f32; 3] = [0.26862954, 0.2613026, 0.2757771];
 
         // Create normalized array [1, 3, 224, 224]
         let mut array = Array4::<f32>::zeros((1, 3, IMAGE_SIZE as usize, IMAGE_SIZE as usize));
