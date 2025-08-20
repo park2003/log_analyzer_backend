@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde_json::{json, Value};
+use serde_json::json;
 use std::time::Instant;
 use uuid::Uuid;
 use chrono::Utc;

@@ -1,8 +1,6 @@
 use async_trait::async_trait;
 use anyhow::Result;
 use sqlx::{PgPool, postgres::PgPoolOptions, Row};
-use serde_json::Value;
-use uuid::Uuid;
 use crate::domain::{
     models::{KhaydarinLogEntry, ProcessingStatus},
     repositories::KhaydarinRepository,

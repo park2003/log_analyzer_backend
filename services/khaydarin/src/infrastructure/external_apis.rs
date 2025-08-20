@@ -1,9 +1,8 @@
-use async_trait::async_trait;
-use anyhow::Result;
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 use crate::application::llm_chain::Llm;
+use anyhow::Result;
+use async_trait::async_trait;
+use reqwest::Client;
+use serde_json::json;
 
 // Placeholder LLM client implementation
 // This can be replaced with actual OpenAI, Claude, or other LLM API integration
@@ -23,7 +22,7 @@ impl LlmApiClient {
             base_url,
         }
     }
-    
+
     // Create a mock/development client that returns example responses
     pub fn new_mock() -> Self {
         Self {
@@ -37,7 +36,7 @@ impl LlmApiClient {
 
 #[async_trait]
 impl Llm for LlmApiClient {
-    async fn invoke(&self, prompt: &str) -> Result<String> {
+    async fn invoke(&self, _prompt: &str) -> Result<String> {
         // For development/testing, return a mock response
         if self.api_key == "mock" {
             // Return a mock fine-tuning plan JSON response
@@ -53,10 +52,10 @@ impl Llm for LlmApiClient {
                     "batch_size": "4"
                 }
             });
-            
+
             return Ok(mock_response.to_string());
         }
-        
+
         // TODO: Implement actual LLM API call
         // Example structure for OpenAI-style API:
         /*
@@ -69,23 +68,23 @@ impl Llm for LlmApiClient {
             "temperature": 0.7,
             "max_tokens": 1000
         });
-        
+
         let response = self.client
             .post(&format!("{}/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&request_body)
             .send()
             .await?;
-        
+
         let response_json: Value = response.json().await?;
         let content = response_json["choices"][0]["message"]["content"]
             .as_str()
             .unwrap_or("")
             .to_string();
-        
+
         Ok(content)
         */
-        
+
         // Placeholder for now
         Ok("LLM response placeholder".to_string())
     }

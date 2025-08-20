@@ -7,15 +7,14 @@ use crate::domain::{
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
-// Include the generated proto code
-pub mod savassan {
-    pub mod v1 {
-        tonic::include_proto!("savassan.v1");
-    }
+// Include the generated proto code  
+pub mod khaydarin_proto {
+    tonic::include_proto!("savassan.khaydarin.v1");
 }
 
-use savassan::v1::{
-    ProcessPromptRequest, ProcessPromptResponse, khaydarin_service_server::KhaydarinService,
+use khaydarin_proto::{
+    khaydarin_service_server::KhaydarinService,
+    ProcessPromptRequest, ProcessPromptResponse,
 };
 
 // gRPC service implementation
@@ -76,7 +75,7 @@ where
         match self.use_case.execute(processing_request).await {
             Ok(result) => {
                 match result {
-                    ProcessingResult::Success { plan, confidence } => {
+                    ProcessingResult::Success { plan, confidence: _ } => {
                         // Convert plan to protobuf Struct
                         let plan_json = serde_json::to_value(&plan).map_err(|e| {
                             Status::internal(format!("Failed to serialize plan: {}", e))
@@ -113,13 +112,12 @@ where
 // Helper function to convert JSON to protobuf Struct fields
 fn convert_json_to_protobuf_map(
     value: serde_json::Value,
-) -> Result<std::collections::HashMap<String, prost_types::Value>, String> {
-    use prost_types::value::Kind;
-    use std::collections::HashMap;
+) -> Result<std::collections::BTreeMap<String, prost_types::Value>, String> {
+    use std::collections::BTreeMap;
 
     match value {
         serde_json::Value::Object(map) => {
-            let mut proto_map = HashMap::new();
+            let mut proto_map = BTreeMap::new();
             for (key, val) in map {
                 let proto_value = convert_json_to_protobuf_value(val)?;
                 proto_map.insert(key, proto_value);
