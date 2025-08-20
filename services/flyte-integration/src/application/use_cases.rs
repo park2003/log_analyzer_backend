@@ -132,7 +132,7 @@ where
                         };
                         
                         if new_status != execution.status {
-                            updated_execution.update_status(new_status);
+                            updated_execution.update_status(new_status.clone());
                             self.repository.update(&updated_execution).await?;
                             tracing::info!("Updated execution {} to status {:?}", execution.id, new_status);
                         }

@@ -13,6 +13,7 @@ tower-http = { workspace = true }
 # gRPC & Protobuf
 tonic = { workspace = true }
 prost = { workspace = true }
+tonic-prost = { workspace = true }
 
 # Database
 sqlx = { workspace = true }

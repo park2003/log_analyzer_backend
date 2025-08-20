@@ -19,6 +19,7 @@ async-trait = "0.1"
 # gRPC & Protobuf
 tonic = "0.14.1"
 prost = "0.14.1"
+tonic-prost = "0.14.1"
 prost-types = "0.14.1"
 tonic-prost-build = "0.14.1"
 
@@ -39,7 +40,7 @@ opentelemetry-otlp = { version = "0.30.0", features = ["grpc-tonic"] }
 
 # Error Handling
 anyhow = "1.0.99"
-thiserror = "2.0.15"
+thiserror = "2.0.16"
 
 # Environment variables
 dotenvy = "0.15"

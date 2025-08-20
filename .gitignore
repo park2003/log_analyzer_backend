@@ -51,4 +51,6 @@ venv/
 tmp/
 temp/
 
-.claude
+*.claude
+Design.md
+Overall.md

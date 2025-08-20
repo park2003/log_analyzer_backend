@@ -2,9 +2,14 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::{info, error};
 use tonic::transport::Server;
-use opentelemetry::global;
+use opentelemetry::{global, KeyValue, trace::TracerProvider as _};
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace as sdktrace, Resource};
+use opentelemetry_sdk::{
+    propagation::TraceContextPropagator, 
+    trace::{Config, Tracer, SdkTracerProvider},
+    runtime,
+    Resource
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 // Module declarations
@@ -22,24 +27,51 @@ use crate::{
     presentation::grpc_services::{DataCuratorGrpcService, data_curator_proto::data_curator_service_server::DataCuratorServiceServer},
 };
 
-fn init_tracing() -> Result<sdktrace::Tracer, opentelemetry::trace::TraceError> {
+// Wrapper types to bridge trait objects with generic parameters
+struct StorageServiceWrapper(Arc<dyn application::StorageService>);
+struct EmbeddingServiceWrapper(Arc<dyn application::EmbeddingService>);
+
+#[async_trait::async_trait]
+impl application::StorageService for StorageServiceWrapper {
+    async fn list_images(&self, uri: &str) -> anyhow::Result<Vec<String>> {
+        self.0.list_images(uri).await
+    }
+    
+    async fn download_image(&self, uri: &str) -> anyhow::Result<Vec<u8>> {
+        self.0.download_image(uri).await
+    }
+    
+    async fn upload_dataset(&self, data: Vec<String>, uri: &str) -> anyhow::Result<()> {
+        self.0.upload_dataset(data, uri).await
+    }
+}
+
+#[async_trait::async_trait]
+impl application::EmbeddingService for EmbeddingServiceWrapper {
+    async fn generate_embedding(&self, image_data: &[u8]) -> anyhow::Result<Vec<f32>> {
+        self.0.generate_embedding(image_data).await
+    }
+}
+
+fn init_tracing() -> Result<Tracer, Box<dyn std::error::Error>> {
+    use opentelemetry_otlp::SpanExporter;
+    
     let otlp_endpoint = std::env::var("OTLP_ENDPOINT")
         .unwrap_or_else(|_| "http://localhost:4317".to_string());
     
-    opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint(otlp_endpoint),
-        )
-        .with_trace_config(sdktrace::config().with_resource(Resource::new(vec![
-            opentelemetry::KeyValue::new(
-                "service.name",
-                "data-curator",
-            ),
-        ])))
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
+    let exporter = SpanExporter::builder()
+        .with_tonic()
+        .with_endpoint(otlp_endpoint)
+        .build()?;
+    
+    let provider = SdkTracerProvider::builder()
+        .with_simple_exporter(exporter)
+        .build();
+    
+    let tracer = provider.tracer("data-curator");
+    global::set_tracer_provider(provider);
+    
+    Ok(tracer)
 }
 
 #[tokio::main]
@@ -95,12 +127,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Arc::new(MockEmbeddingService::new())
     };
     
-    // Create gRPC service
+    // Create gRPC service with wrapper types
+    let storage_wrapper = Arc::new(StorageServiceWrapper(storage_service));
+    let embedding_wrapper = Arc::new(EmbeddingServiceWrapper(embedding_service));
+    
     let grpc_service = DataCuratorGrpcService::new(
         job_repository,
         embedding_repository,
-        storage_service,
-        embedding_service,
+        storage_wrapper,
+        embedding_wrapper,
     );
     
     let grpc_server = grpc_service.into_server();
@@ -115,7 +150,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Configure health check service
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
-        .set_serving::<DataCuratorServiceServer<_>>()
+        .set_serving::<DataCuratorServiceServer<DataCuratorGrpcService<
+            PostgresCurationJobRepository,
+            PgVectorEmbeddingRepository,
+            StorageServiceWrapper,
+            EmbeddingServiceWrapper
+        >>>()
         .await;
     
     // Start gRPC server with graceful shutdown
@@ -135,8 +175,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     
-    // Shutdown OpenTelemetry
-    global::shutdown_tracer_provider();
+    // Shutdown OpenTelemetry - function no longer exists in newer versions
+    // Tracer provider will be dropped automatically
     
     Ok(())
 }

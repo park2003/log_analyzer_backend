@@ -5,7 +5,7 @@ use crate::domain::{
 use anyhow::Result;
 use async_trait::async_trait;
 use pgvector::Vector;
-use sqlx::{PgPool, Row, postgres::PgPoolOptions};
+use sqlx::{PgPool, Row, postgres::PgPoolOptions, postgres::PgRow};
 use uuid::Uuid;
 
 pub struct PostgresCurationJobRepository {
@@ -24,23 +24,23 @@ impl CurationJobRepository for PostgresCurationJobRepository {
         let status = serde_json::to_value(&job.status)?;
         let images = serde_json::to_value(&job.images_for_feedback)?;
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO curation_jobs (
                 id, project_id, status, raw_data_uri, 
                 curated_data_uri, images_for_feedback, created_at, updated_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            "#,
-            job.id,
-            job.project_id,
-            status,
-            job.raw_data_uri,
-            job.curated_data_uri,
-            images,
-            job.created_at,
-            job.updated_at
+            "#
         )
+        .bind(job.id)
+        .bind(&job.project_id)
+        .bind(&status)
+        .bind(&job.raw_data_uri)
+        .bind(&job.curated_data_uri)
+        .bind(&images)
+        .bind(job.created_at)
+        .bind(job.updated_at)
         .execute(&self.pool)
         .await?;
 
@@ -48,32 +48,32 @@ impl CurationJobRepository for PostgresCurationJobRepository {
     }
 
     async fn get_by_id(&self, job_id: &Uuid) -> Result<Option<CurationJob>> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             SELECT id, project_id, status, raw_data_uri, 
                    curated_data_uri, images_for_feedback, created_at, updated_at
             FROM curation_jobs
             WHERE id = $1
-            "#,
-            job_id
+            "#
         )
+        .bind(job_id)
         .fetch_optional(&self.pool)
         .await?;
 
         match row {
             Some(r) => {
-                let status: CurationStatus = serde_json::from_value(r.status)?;
-                let images: Vec<ImageForFeedback> = serde_json::from_value(r.images_for_feedback)?;
+                let status: CurationStatus = serde_json::from_value(r.get("status"))?;
+                let images: Vec<ImageForFeedback> = serde_json::from_value(r.get("images_for_feedback"))?;
 
                 Ok(Some(CurationJob {
-                    id: r.id,
-                    project_id: r.project_id,
+                    id: r.get("id"),
+                    project_id: r.get("project_id"),
                     status,
-                    raw_data_uri: r.raw_data_uri,
-                    curated_data_uri: r.curated_data_uri,
+                    raw_data_uri: r.get("raw_data_uri"),
+                    curated_data_uri: r.get("curated_data_uri"),
                     images_for_feedback: images,
-                    created_at: r.created_at,
-                    updated_at: r.updated_at,
+                    created_at: r.get("created_at"),
+                    updated_at: r.get("updated_at"),
                 }))
             }
             None => Ok(None),
@@ -84,21 +84,21 @@ impl CurationJobRepository for PostgresCurationJobRepository {
         let status = serde_json::to_value(&job.status)?;
         let images = serde_json::to_value(&job.images_for_feedback)?;
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE curation_jobs
             SET project_id = $2, status = $3, raw_data_uri = $4,
                 curated_data_uri = $5, images_for_feedback = $6, updated_at = $7
             WHERE id = $1
-            "#,
-            job.id,
-            job.project_id,
-            status,
-            job.raw_data_uri,
-            job.curated_data_uri,
-            images,
-            job.updated_at
+            "#
         )
+        .bind(job.id)
+        .bind(&job.project_id)
+        .bind(&status)
+        .bind(&job.raw_data_uri)
+        .bind(&job.curated_data_uri)
+        .bind(&images)
+        .bind(job.updated_at)
         .execute(&self.pool)
         .await?;
 
@@ -106,33 +106,33 @@ impl CurationJobRepository for PostgresCurationJobRepository {
     }
 
     async fn list_by_project(&self, project_id: &str) -> Result<Vec<CurationJob>> {
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             r#"
             SELECT id, project_id, status, raw_data_uri, 
                    curated_data_uri, images_for_feedback, created_at, updated_at
             FROM curation_jobs
             WHERE project_id = $1
             ORDER BY created_at DESC
-            "#,
-            project_id
+            "#
         )
+        .bind(project_id)
         .fetch_all(&self.pool)
         .await?;
 
         let mut jobs = Vec::new();
         for r in rows {
-            let status: CurationStatus = serde_json::from_value(r.status)?;
-            let images: Vec<ImageForFeedback> = serde_json::from_value(r.images_for_feedback)?;
+            let status: CurationStatus = serde_json::from_value(r.get("status"))?;
+            let images: Vec<ImageForFeedback> = serde_json::from_value(r.get("images_for_feedback"))?;
 
             jobs.push(CurationJob {
-                id: r.id,
-                project_id: r.project_id,
+                id: r.get("id"),
+                project_id: r.get("project_id"),
                 status,
-                raw_data_uri: r.raw_data_uri,
-                curated_data_uri: r.curated_data_uri,
+                raw_data_uri: r.get("raw_data_uri"),
+                curated_data_uri: r.get("curated_data_uri"),
                 images_for_feedback: images,
-                created_at: r.created_at,
-                updated_at: r.updated_at,
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
             });
         }
 
@@ -155,17 +155,17 @@ impl ImageEmbeddingRepository for PgVectorEmbeddingRepository {
     async fn save(&self, embedding: &ImageEmbedding) -> Result<()> {
         let vec = Vector::from(embedding.embedding.clone());
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO image_embeddings (id, project_id, image_uri, embedding, created_at)
             VALUES ($1, $2, $3, $4, $5)
-            "#,
-            embedding.id,
-            embedding.project_id,
-            embedding.image_uri,
-            vec as _,
-            embedding.created_at
+            "#
         )
+        .bind(embedding.id)
+        .bind(&embedding.project_id)
+        .bind(&embedding.image_uri)
+        .bind(vec)
+        .bind(embedding.created_at)
         .execute(&self.pool)
         .await?;
 
@@ -178,17 +178,17 @@ impl ImageEmbeddingRepository for PgVectorEmbeddingRepository {
         for embedding in embeddings {
             let vec = Vector::from(embedding.embedding.clone());
 
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 INSERT INTO image_embeddings (id, project_id, image_uri, embedding, created_at)
                 VALUES ($1, $2, $3, $4, $5)
-                "#,
-                embedding.id,
-                embedding.project_id,
-                embedding.image_uri,
-                vec as _,
-                embedding.created_at
+                "#
             )
+            .bind(embedding.id)
+            .bind(&embedding.project_id)
+            .bind(&embedding.image_uri)
+            .bind(&vec)
+            .bind(embedding.created_at)
             .execute(&mut *tx)
             .await?;
         }
@@ -198,26 +198,26 @@ impl ImageEmbeddingRepository for PgVectorEmbeddingRepository {
     }
 
     async fn get_by_project(&self, project_id: &str) -> Result<Vec<ImageEmbedding>> {
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             r#"
             SELECT id, project_id, image_uri, embedding, created_at
             FROM image_embeddings
             WHERE project_id = $1
-            "#,
-            project_id
+            "#
         )
+        .bind(project_id)
         .fetch_all(&self.pool)
         .await?;
 
         let mut embeddings = Vec::new();
         for r in rows {
-            let vec: Vector = r.embedding;
+            let vec: Vector = r.get("embedding");
             embeddings.push(ImageEmbedding {
-                id: r.id,
-                project_id: r.project_id,
-                image_uri: r.image_uri,
+                id: r.get("id"),
+                project_id: r.get("project_id"),
+                image_uri: r.get("image_uri"),
                 embedding: vec.to_vec(),
-                created_at: r.created_at,
+                created_at: r.get("created_at"),
             });
         }
 
@@ -225,26 +225,26 @@ impl ImageEmbeddingRepository for PgVectorEmbeddingRepository {
     }
 
     async fn get_by_image_uri(&self, image_uri: &str) -> Result<Option<ImageEmbedding>> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             SELECT id, project_id, image_uri, embedding, created_at
             FROM image_embeddings
             WHERE image_uri = $1
-            "#,
-            image_uri
+            "#
         )
+        .bind(image_uri)
         .fetch_optional(&self.pool)
         .await?;
 
         match row {
             Some(r) => {
-                let vec: Vector = r.embedding;
+                let vec: Vector = r.get("embedding");
                 Ok(Some(ImageEmbedding {
-                    id: r.id,
-                    project_id: r.project_id,
-                    image_uri: r.image_uri,
+                    id: r.get("id"),
+                    project_id: r.get("project_id"),
+                    image_uri: r.get("image_uri"),
                     embedding: vec.to_vec(),
-                    created_at: r.created_at,
+                    created_at: r.get("created_at"),
                 }))
             }
             None => Ok(None),
@@ -255,28 +255,28 @@ impl ImageEmbeddingRepository for PgVectorEmbeddingRepository {
         let vec = Vector::from(embedding.to_vec());
 
         // Using cosine distance (<=>)
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             r#"
             SELECT id, project_id, image_uri, embedding, created_at
             FROM image_embeddings
             ORDER BY embedding <=> $1
             LIMIT $2
-            "#,
-            vec as _,
-            limit as i64
+            "#
         )
+        .bind(vec)
+        .bind(limit as i64)
         .fetch_all(&self.pool)
         .await?;
 
         let mut embeddings = Vec::new();
         for r in rows {
-            let vec: Vector = r.embedding;
+            let vec: Vector = r.get("embedding");
             embeddings.push(ImageEmbedding {
-                id: r.id,
-                project_id: r.project_id,
-                image_uri: r.image_uri,
+                id: r.get("id"),
+                project_id: r.get("project_id"),
+                image_uri: r.get("image_uri"),
                 embedding: vec.to_vec(),
-                created_at: r.created_at,
+                created_at: r.get("created_at"),
             });
         }
 
@@ -320,20 +320,20 @@ pub async fn connect() -> Result<PgPool> {
         .connect(&database_url)
         .await?;
 
-    // Run migrations
-    sqlx::migrate!("./migrations").run(&pool).await?;
+    // Run migrations - commented out for now as migrations directory doesn't exist
+    // sqlx::migrate!("./migrations").run(&pool).await?;
 
     Ok(pool)
 }
 
 pub async fn setup_database(pool: &PgPool) -> Result<()> {
     // Enable pgvector extension
-    sqlx::query!("CREATE EXTENSION IF NOT EXISTS vector")
+    sqlx::query("CREATE EXTENSION IF NOT EXISTS vector")
         .execute(pool)
         .await?;
 
     // Create tables
-    sqlx::query!(
+    sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS curation_jobs (
             id UUID PRIMARY KEY,
@@ -350,7 +350,7 @@ pub async fn setup_database(pool: &PgPool) -> Result<()> {
     .execute(pool)
     .await?;
 
-    sqlx::query!(
+    sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS image_embeddings (
             id UUID PRIMARY KEY,
@@ -365,20 +365,20 @@ pub async fn setup_database(pool: &PgPool) -> Result<()> {
     .await?;
 
     // Create indexes
-    sqlx::query!(
+    sqlx::query(
         "CREATE INDEX IF NOT EXISTS idx_curation_jobs_project_id ON curation_jobs(project_id)"
     )
     .execute(pool)
     .await?;
 
-    sqlx::query!(
+    sqlx::query(
         "CREATE INDEX IF NOT EXISTS idx_image_embeddings_project_id ON image_embeddings(project_id)"
     )
     .execute(pool)
     .await?;
 
     // Create HNSW index for vector similarity search
-    sqlx::query!("CREATE INDEX IF NOT EXISTS idx_image_embeddings_hnsw ON image_embeddings USING hnsw (embedding vector_cosine_ops)")
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_image_embeddings_hnsw ON image_embeddings USING hnsw (embedding vector_cosine_ops)")
         .execute(pool)
         .await?;
 

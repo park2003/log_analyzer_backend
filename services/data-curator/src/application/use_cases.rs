@@ -21,10 +21,10 @@ pub trait EmbeddingService: Send + Sync {
 
 pub struct StartCurationUseCase<C, E, S, EM>
 where
-    C: CurationJobRepository,
-    E: ImageEmbeddingRepository,
-    S: StorageService,
-    EM: EmbeddingService,
+    C: CurationJobRepository + 'static,
+    E: ImageEmbeddingRepository + 'static,
+    S: StorageService + 'static,
+    EM: EmbeddingService + 'static,
 {
     job_repository: Arc<C>,
     embedding_repository: Arc<E>,
@@ -34,10 +34,10 @@ where
 
 impl<C, E, S, EM> StartCurationUseCase<C, E, S, EM>
 where
-    C: CurationJobRepository,
-    E: ImageEmbeddingRepository,
-    S: StorageService,
-    EM: EmbeddingService,
+    C: CurationJobRepository + 'static,
+    E: ImageEmbeddingRepository + 'static,
+    S: StorageService + 'static,
+    EM: EmbeddingService + 'static,
 {
     pub fn new(
         job_repository: Arc<C>,

@@ -68,7 +68,7 @@ impl WorkflowExecution {
 
     /// Update the status of the execution
     pub fn update_status(&mut self, status: ExecutionStatus) {
-        self.status = status;
+        self.status = status.clone();
         self.updated_at = Utc::now();
         
         if status == ExecutionStatus::Running && self.started_at.is_none() {

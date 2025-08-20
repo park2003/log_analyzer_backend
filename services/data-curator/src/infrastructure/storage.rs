@@ -12,14 +12,14 @@ pub struct S3StorageService {
 
 impl S3StorageService {
     pub async fn new(bucket: String) -> Result<Self> {
-        let config = aws_config::load_from_env().await;
+        let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
         let client = S3Client::new(&config);
         
         Ok(Self { client, bucket })
     }
 
     pub async fn new_with_config(bucket: String, region: Option<String>) -> Result<Self> {
-        let mut config_loader = aws_config::from_env();
+        let mut config_loader = aws_config::defaults(aws_config::BehaviorVersion::latest());
         
         if let Some(region_str) = region {
             config_loader = config_loader.region(Region::new(region_str));
