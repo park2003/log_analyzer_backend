@@ -181,12 +181,11 @@ impl StorageService for LocalStorageService {
 
         while let Some(entry) = entries.next_entry().await? {
             let path = entry.path();
-            if let Some(ext) = path.extension() {
-                if ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "webp" {
-                    if let Some(path_str) = path.to_str() {
-                        images.push(path_str.to_string());
-                    }
-                }
+            if let Some(ext) = path.extension()
+                && (ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "webp")
+                && let Some(path_str) = path.to_str()
+            {
+                images.push(path_str.to_string());
             }
         }
 

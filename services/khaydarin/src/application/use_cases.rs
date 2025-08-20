@@ -54,20 +54,18 @@ Generate a JSON response with the following structure:
         let start_time = Instant::now();
 
         // Check for idempotency
-        if self.repository.request_exists(&request.request_id).await? {
-            if let Some(existing) = self
+        if self.repository.request_exists(&request.request_id).await?
+            && let Some(existing) = self
                 .repository
                 .get_by_request_id(&request.request_id)
                 .await?
-            {
-                if let Some(plan_json) = existing.structured_plan {
-                    let plan: FineTuningPlan = serde_json::from_value(plan_json)?;
-                    return Ok(ProcessingResult::Success {
-                        plan,
-                        confidence: 1.0,
-                    });
-                }
-            }
+            && let Some(plan_json) = existing.structured_plan
+        {
+            let plan: FineTuningPlan = serde_json::from_value(plan_json)?;
+            return Ok(ProcessingResult::Success {
+                plan,
+                confidence: 1.0,
+            });
         }
 
         // Create initial log entry

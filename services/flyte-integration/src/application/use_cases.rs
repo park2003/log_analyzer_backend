@@ -93,27 +93,27 @@ where
             .ok_or_else(|| anyhow::anyhow!("Execution not found: {}", execution_id))?;
 
         // If execution is not terminal, query Flyte for updated status
-        if !execution.status.is_terminal() {
-            if let Some(flyte_id) = &execution.flyte_execution_id {
-                match self.flyte_client.get_execution_status(flyte_id).await {
-                    Ok(status_str) => {
-                        let new_status = match status_str.as_str() {
-                            "RUNNING" => ExecutionStatus::Running,
-                            "SUCCEEDED" => ExecutionStatus::Succeeded,
-                            "FAILED" => ExecutionStatus::Failed,
-                            "ABORTED" => ExecutionStatus::Aborted,
-                            "TIMED_OUT" => ExecutionStatus::TimedOut,
-                            _ => execution.status.clone(),
-                        };
+        if !execution.status.is_terminal()
+            && let Some(flyte_id) = &execution.flyte_execution_id
+        {
+            match self.flyte_client.get_execution_status(flyte_id).await {
+                Ok(status_str) => {
+                    let new_status = match status_str.as_str() {
+                        "RUNNING" => ExecutionStatus::Running,
+                        "SUCCEEDED" => ExecutionStatus::Succeeded,
+                        "FAILED" => ExecutionStatus::Failed,
+                        "ABORTED" => ExecutionStatus::Aborted,
+                        "TIMED_OUT" => ExecutionStatus::TimedOut,
+                        _ => execution.status.clone(),
+                    };
 
-                        if new_status != execution.status {
-                            execution.update_status(new_status);
-                            self.repository.update(&execution).await?;
-                        }
+                    if new_status != execution.status {
+                        execution.update_status(new_status);
+                        self.repository.update(&execution).await?;
                     }
-                    Err(e) => {
-                        tracing::warn!("Failed to get Flyte status for {}: {}", flyte_id, e);
-                    }
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to get Flyte status for {}: {}", flyte_id, e);
                 }
             }
         }
