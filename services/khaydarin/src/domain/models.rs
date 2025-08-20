@@ -1,8 +1,8 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
 use std::collections::HashMap;
+use uuid::Uuid;
 
 // Core domain model for a fine-tuning plan generated from natural language
 #[derive(Debug, Clone, Serialize, Deserialize)]

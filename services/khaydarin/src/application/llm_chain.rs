@@ -1,6 +1,6 @@
-use serde_json::Value;
-use async_trait::async_trait;
 use anyhow::Result;
+use async_trait::async_trait;
+use serde_json::Value;
 
 // Trait for any component that can execute LLM calls
 #[async_trait]
@@ -15,12 +15,14 @@ pub struct PromptTemplate {
 
 impl PromptTemplate {
     pub fn new(template: &str) -> Self {
-        Self { template: template.to_string() }
+        Self {
+            template: template.to_string(),
+        }
     }
 
     pub fn format(&self, context: &Value) -> String {
         let mut result = self.template.clone();
-        
+
         // Replace placeholders like {{user_prompt}} with values from context
         if let Value::Object(map) = context {
             for (key, value) in map {
@@ -32,7 +34,7 @@ impl PromptTemplate {
                 result = result.replace(&placeholder, &replacement);
             }
         }
-        
+
         result
     }
 }
@@ -57,15 +59,11 @@ impl OutputParser for JsonOutputParser {
                 .unwrap_or(output)
                 .trim()
         } else if output.contains("```") {
-            output
-                .split("```")
-                .nth(1)
-                .unwrap_or(output)
-                .trim()
+            output.split("```").nth(1).unwrap_or(output).trim()
         } else {
             output.trim()
         };
-        
+
         Ok(serde_json::from_str(cleaned)?)
     }
 }
@@ -85,7 +83,7 @@ impl<L: Llm, P: OutputParser> LlmChain<L, P> {
             output_parser,
         }
     }
-    
+
     pub async fn run(&self, context: &Value) -> Result<Value> {
         let formatted_prompt = self.prompt_template.format(context);
         let llm_output = self.llm.invoke(&formatted_prompt).await?;

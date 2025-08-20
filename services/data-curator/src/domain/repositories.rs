@@ -1,7 +1,7 @@
-use async_trait::async_trait;
-use anyhow::Result;
-use uuid::Uuid;
 use crate::domain::models::{CurationJob, ImageEmbedding, ImageFeedback};
+use anyhow::Result;
+use async_trait::async_trait;
+use uuid::Uuid;
 
 #[async_trait]
 pub trait CurationJobRepository: Send + Sync {
@@ -18,5 +18,9 @@ pub trait ImageEmbeddingRepository: Send + Sync {
     async fn get_by_project(&self, project_id: &str) -> Result<Vec<ImageEmbedding>>;
     async fn get_by_image_uri(&self, image_uri: &str) -> Result<Option<ImageEmbedding>>;
     async fn find_similar(&self, embedding: &[f32], limit: usize) -> Result<Vec<ImageEmbedding>>;
-    async fn find_cluster_boundaries(&self, project_id: &str, n_samples: usize) -> Result<Vec<ImageEmbedding>>;
+    async fn find_cluster_boundaries(
+        &self,
+        project_id: &str,
+        n_samples: usize,
+    ) -> Result<Vec<ImageEmbedding>>;
 }

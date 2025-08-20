@@ -1,5 +1,5 @@
-use anyhow::Result;
 use crate::domain::models::ImageEmbedding;
+use anyhow::Result;
 
 pub struct ActiveLearningEngine;
 
@@ -15,9 +15,9 @@ impl ActiveLearningEngine {
     }
 
     pub async fn select_informative_samples(
-        &self, 
-        embeddings: &[ImageEmbedding], 
-        num_samples: usize
+        &self,
+        embeddings: &[ImageEmbedding],
+        num_samples: usize,
     ) -> Result<Vec<String>> {
         // TODO: Implement active learning selection algorithm
         // This would implement clustering and boundary sampling

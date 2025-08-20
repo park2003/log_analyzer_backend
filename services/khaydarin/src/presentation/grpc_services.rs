@@ -7,14 +7,13 @@ use crate::domain::{
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
-// Include the generated proto code  
+// Include the generated proto code
 pub mod khaydarin_proto {
     tonic::include_proto!("savassan.khaydarin.v1");
 }
 
 use khaydarin_proto::{
-    khaydarin_service_server::KhaydarinService,
-    ProcessPromptRequest, ProcessPromptResponse,
+    ProcessPromptRequest, ProcessPromptResponse, khaydarin_service_server::KhaydarinService,
 };
 
 // gRPC service implementation
@@ -75,7 +74,10 @@ where
         match self.use_case.execute(processing_request).await {
             Ok(result) => {
                 match result {
-                    ProcessingResult::Success { plan, confidence: _ } => {
+                    ProcessingResult::Success {
+                        plan,
+                        confidence: _,
+                    } => {
                         // Convert plan to protobuf Struct
                         let plan_json = serde_json::to_value(&plan).map_err(|e| {
                             Status::internal(format!("Failed to serialize plan: {}", e))

@@ -1,20 +1,16 @@
-use std::net::SocketAddr;
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use opentelemetry::global;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{
-    propagation::TraceContextPropagator, 
-    trace::SdkTracerProvider,
-    Resource,
-};
+use opentelemetry_sdk::{Resource, propagation::TraceContextPropagator, trace::SdkTracerProvider};
+use std::net::SocketAddr;
+use tonic::transport::Server;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use tonic::transport::Server;
 
 // Module declarations
-mod domain;
 mod application;
+mod domain;
 mod infrastructure;
 mod presentation;
 
@@ -24,31 +20,30 @@ use crate::application::use_cases::ProcessPromptUseCase;
 use crate::infrastructure::database::PostgresKhaydarinRepository;
 use crate::infrastructure::external_apis::LlmApiClient;
 use crate::presentation::grpc_services::{
-    khaydarin_proto::khaydarin_service_server::KhaydarinServiceServer,
-    KhaydarinGrpcServer,
+    KhaydarinGrpcServer, khaydarin_proto::khaydarin_service_server::KhaydarinServiceServer,
 };
 
 // OTLP tracing pipeline initialization function
 fn init_tracing() -> Result<SdkTracerProvider, Box<dyn std::error::Error>> {
     use opentelemetry::KeyValue;
-    
+
     // Create OTLP exporter
     let exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_tonic()
         .with_endpoint("http://localhost:4317")
         .build()?;
-    
+
     // Create resource with service name using ResourceBuilder
     let resource = Resource::builder()
         .with_service_name("khaydarin-service")
         .build();
-    
+
     // Create TracerProvider with the exporter
     let provider = SdkTracerProvider::builder()
         .with_batch_exporter(exporter)
         .with_resource(resource)
         .build();
-    
+
     Ok(provider)
 }
 
@@ -56,11 +51,11 @@ fn init_tracing() -> Result<SdkTracerProvider, Box<dyn std::error::Error>> {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Set global Propagator (propagate context via HTTP headers)
     global::set_text_map_propagator(TraceContextPropagator::new());
-    
+
     // Initialize tracer provider
     let provider = init_tracing().expect("Failed to initialize tracing pipeline.");
     let tracer = provider.tracer("khaydarin-service");
-    
+
     // Setup Tracing Subscriber
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
     tracing_subscriber::registry()
@@ -68,33 +63,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::EnvFilter::from_default_env())
         .with(tracing_subscriber::fmt::layer())
         .init();
-    
+
     // Set the global tracer provider
     let _ = global::set_tracer_provider(provider);
 
     // Initialize dependencies from infrastructure layer
     tracing::info!("Connecting to database...");
     let db_pool = infrastructure::database::connect().await?;
-    
+
     // Initialize the repository
     let khaydarin_repository = PostgresKhaydarinRepository::new(db_pool.clone());
-    
+
     // Create database schema if it doesn't exist
     khaydarin_repository.init_schema().await?;
-    
+
     // Initialize LLM client (using mock for development)
     let llm_client = LlmApiClient::new_mock();
-    
+
     // Initialize output parser
     let output_parser = JsonOutputParser;
-    
+
     // Create use case
-    let use_case = ProcessPromptUseCase::new(
-        khaydarin_repository,
-        llm_client,
-        output_parser,
-    );
-    
+    let use_case = ProcessPromptUseCase::new(khaydarin_repository, llm_client, output_parser);
+
     // Create gRPC service
     let grpc_service = KhaydarinGrpcServer::new(use_case);
 
@@ -107,10 +98,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // HTTP server address for health checks
     let http_addr = "0.0.0.0:8080".parse::<SocketAddr>()?;
-    
+
     // gRPC server address
     let grpc_addr = "[::1]:50051".parse::<SocketAddr>()?;
-    
+
     tracing::info!("Starting Khaydarin service");
     tracing::info!("HTTP server (health checks) listening on {}", http_addr);
     tracing::info!("gRPC server listening on {}", grpc_addr);
@@ -125,9 +116,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let grpc_server = Server::builder()
         .add_service(KhaydarinServiceServer::new(grpc_service))
         .serve(grpc_addr);
-    
+
     tracing::info!("gRPC server started on {}", grpc_addr);
-    
+
     // Run gRPC server until interrupted
     tokio::select! {
         res = grpc_server => {
@@ -139,7 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tracing::info!("Received shutdown signal");
         }
     }
-    
+
     tracing::info!("Shutting down Khaydarin service");
     Ok(())
 }

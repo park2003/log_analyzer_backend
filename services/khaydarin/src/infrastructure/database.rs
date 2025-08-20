@@ -1,10 +1,10 @@
-use async_trait::async_trait;
-use anyhow::Result;
-use sqlx::{PgPool, postgres::PgPoolOptions, Row};
 use crate::domain::{
     models::{KhaydarinLogEntry, ProcessingStatus},
     repositories::KhaydarinRepository,
 };
+use anyhow::Result;
+use async_trait::async_trait;
+use sqlx::{PgPool, Row, postgres::PgPoolOptions};
 
 // PostgreSQL implementation of KhaydarinRepository
 pub struct PostgresKhaydarinRepository {
@@ -15,7 +15,7 @@ impl PostgresKhaydarinRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
-    
+
     // Initialize database tables
     pub async fn init_schema(&self) -> Result<()> {
         sqlx::query(
@@ -39,7 +39,7 @@ impl PostgresKhaydarinRepository {
         )
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
 }
@@ -52,14 +52,14 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
             ProcessingStatus::LlmError => "LLM_ERROR",
             ProcessingStatus::ParsingError => "PARSING_ERROR",
         };
-        
+
         sqlx::query(
             r#"
             INSERT INTO khaydarin_logs (
                 id, request_id, user_id, received_at, user_prompt,
                 llm_prompt, llm_raw_response, structured_plan, status, processing_time_ms
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            "#
+            "#,
         )
         .bind(&entry.id)
         .bind(&entry.request_id)
@@ -73,10 +73,10 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
         .bind(&entry.processing_time_ms)
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
-    
+
     async fn get_by_request_id(&self, request_id: &str) -> Result<Option<KhaydarinLogEntry>> {
         let row = sqlx::query(
             r#"
@@ -84,12 +84,12 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
                    llm_prompt, llm_raw_response, structured_plan, status, processing_time_ms
             FROM khaydarin_logs
             WHERE request_id = $1
-            "#
+            "#,
         )
         .bind(request_id)
         .fetch_optional(&self.pool)
         .await?;
-        
+
         match row {
             Some(row) => {
                 let status_str: String = row.get("status");
@@ -99,7 +99,7 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
                     "PARSING_ERROR" => ProcessingStatus::ParsingError,
                     _ => ProcessingStatus::LlmError,
                 };
-                
+
                 Ok(Some(KhaydarinLogEntry {
                     id: row.get("id"),
                     request_id: row.get("request_id"),
@@ -116,8 +116,12 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
             None => Ok(None),
         }
     }
-    
-    async fn get_user_history(&self, user_id: &str, limit: usize) -> Result<Vec<KhaydarinLogEntry>> {
+
+    async fn get_user_history(
+        &self,
+        user_id: &str,
+        limit: usize,
+    ) -> Result<Vec<KhaydarinLogEntry>> {
         let rows = sqlx::query(
             r#"
             SELECT id, request_id, user_id, received_at, user_prompt,
@@ -126,13 +130,13 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
             WHERE user_id = $1
             ORDER BY received_at DESC
             LIMIT $2
-            "#
+            "#,
         )
         .bind(user_id)
         .bind(limit as i64)
         .fetch_all(&self.pool)
         .await?;
-        
+
         let mut entries = Vec::new();
         for row in rows {
             let status_str: String = row.get("status");
@@ -142,7 +146,7 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
                 "PARSING_ERROR" => ProcessingStatus::ParsingError,
                 _ => ProcessingStatus::LlmError,
             };
-            
+
             entries.push(KhaydarinLogEntry {
                 id: row.get("id"),
                 request_id: row.get("request_id"),
@@ -156,17 +160,21 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
                 processing_time_ms: row.get("processing_time_ms"),
             });
         }
-        
+
         Ok(entries)
     }
-    
-    async fn update_processing_result(&self, request_id: &str, entry: &KhaydarinLogEntry) -> Result<()> {
+
+    async fn update_processing_result(
+        &self,
+        request_id: &str,
+        entry: &KhaydarinLogEntry,
+    ) -> Result<()> {
         let status_str = match entry.status {
             ProcessingStatus::Success => "SUCCESS",
             ProcessingStatus::LlmError => "LLM_ERROR",
             ProcessingStatus::ParsingError => "PARSING_ERROR",
         };
-        
+
         sqlx::query(
             r#"
             UPDATE khaydarin_logs
@@ -176,7 +184,7 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
                 status = $4,
                 processing_time_ms = $5
             WHERE request_id = $6
-            "#
+            "#,
         )
         .bind(&entry.llm_prompt)
         .bind(&entry.llm_raw_response)
@@ -186,18 +194,17 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
         .bind(request_id)
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
-    
+
     async fn request_exists(&self, request_id: &str) -> Result<bool> {
-        let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM khaydarin_logs WHERE request_id = $1"
-        )
-        .bind(request_id)
-        .fetch_one(&self.pool)
-        .await?;
-        
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM khaydarin_logs WHERE request_id = $1")
+                .bind(request_id)
+                .fetch_one(&self.pool)
+                .await?;
+
         Ok(count > 0)
     }
 }
@@ -206,11 +213,11 @@ impl KhaydarinRepository for PostgresKhaydarinRepository {
 pub async fn connect() -> Result<PgPool> {
     let database_url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://localhost/khaydarin".to_string());
-    
+
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
         .await?;
-    
+
     Ok(pool)
 }

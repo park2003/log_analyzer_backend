@@ -70,11 +70,11 @@ impl WorkflowExecution {
     pub fn update_status(&mut self, status: ExecutionStatus) {
         self.status = status.clone();
         self.updated_at = Utc::now();
-        
+
         if status == ExecutionStatus::Running && self.started_at.is_none() {
             self.started_at = Some(Utc::now());
         }
-        
+
         if status.is_terminal() && self.completed_at.is_none() {
             self.completed_at = Some(Utc::now());
         }

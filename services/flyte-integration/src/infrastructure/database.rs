@@ -1,10 +1,10 @@
 use async_trait::async_trait;
-use sqlx::{PgPool, postgres::PgRow, Row};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use sqlx::{PgPool, Row, postgres::PgRow};
+use uuid::Uuid;
 
 use crate::domain::{
-    models::{WorkflowExecution, ExecutionStatus},
+    models::{ExecutionStatus, WorkflowExecution},
     repositories::ExecutionRepository,
 };
 
@@ -180,7 +180,10 @@ impl ExecutionRepository for PostgresExecutionRepository {
         }
     }
 
-    async fn get_by_workflow_id(&self, workflow_id: &str) -> Result<Option<WorkflowExecution>, anyhow::Error> {
+    async fn get_by_workflow_id(
+        &self,
+        workflow_id: &str,
+    ) -> Result<Option<WorkflowExecution>, anyhow::Error> {
         let row = sqlx::query(
             r#"
             SELECT * FROM workflow_executions 
@@ -199,7 +202,10 @@ impl ExecutionRepository for PostgresExecutionRepository {
         }
     }
 
-    async fn get_by_flyte_id(&self, flyte_id: &str) -> Result<Option<WorkflowExecution>, anyhow::Error> {
+    async fn get_by_flyte_id(
+        &self,
+        flyte_id: &str,
+    ) -> Result<Option<WorkflowExecution>, anyhow::Error> {
         let row = sqlx::query(
             r#"
             SELECT * FROM workflow_executions WHERE flyte_execution_id = $1
@@ -215,7 +221,10 @@ impl ExecutionRepository for PostgresExecutionRepository {
         }
     }
 
-    async fn list_by_status(&self, status: ExecutionStatus) -> Result<Vec<WorkflowExecution>, anyhow::Error> {
+    async fn list_by_status(
+        &self,
+        status: ExecutionStatus,
+    ) -> Result<Vec<WorkflowExecution>, anyhow::Error> {
         let rows = sqlx::query(
             r#"
             SELECT * FROM workflow_executions 

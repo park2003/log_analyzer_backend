@@ -31,7 +31,7 @@ impl CurationJobRepository for PostgresCurationJobRepository {
                 curated_data_uri, images_for_feedback, created_at, updated_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            "#
+            "#,
         )
         .bind(job.id)
         .bind(&job.project_id)
@@ -54,7 +54,7 @@ impl CurationJobRepository for PostgresCurationJobRepository {
                    curated_data_uri, images_for_feedback, created_at, updated_at
             FROM curation_jobs
             WHERE id = $1
-            "#
+            "#,
         )
         .bind(job_id)
         .fetch_optional(&self.pool)
@@ -63,7 +63,8 @@ impl CurationJobRepository for PostgresCurationJobRepository {
         match row {
             Some(r) => {
                 let status: CurationStatus = serde_json::from_value(r.get("status"))?;
-                let images: Vec<ImageForFeedback> = serde_json::from_value(r.get("images_for_feedback"))?;
+                let images: Vec<ImageForFeedback> =
+                    serde_json::from_value(r.get("images_for_feedback"))?;
 
                 Ok(Some(CurationJob {
                     id: r.get("id"),
@@ -90,7 +91,7 @@ impl CurationJobRepository for PostgresCurationJobRepository {
             SET project_id = $2, status = $3, raw_data_uri = $4,
                 curated_data_uri = $5, images_for_feedback = $6, updated_at = $7
             WHERE id = $1
-            "#
+            "#,
         )
         .bind(job.id)
         .bind(&job.project_id)
@@ -113,7 +114,7 @@ impl CurationJobRepository for PostgresCurationJobRepository {
             FROM curation_jobs
             WHERE project_id = $1
             ORDER BY created_at DESC
-            "#
+            "#,
         )
         .bind(project_id)
         .fetch_all(&self.pool)
@@ -122,7 +123,8 @@ impl CurationJobRepository for PostgresCurationJobRepository {
         let mut jobs = Vec::new();
         for r in rows {
             let status: CurationStatus = serde_json::from_value(r.get("status"))?;
-            let images: Vec<ImageForFeedback> = serde_json::from_value(r.get("images_for_feedback"))?;
+            let images: Vec<ImageForFeedback> =
+                serde_json::from_value(r.get("images_for_feedback"))?;
 
             jobs.push(CurationJob {
                 id: r.get("id"),
@@ -159,7 +161,7 @@ impl ImageEmbeddingRepository for PgVectorEmbeddingRepository {
             r#"
             INSERT INTO image_embeddings (id, project_id, image_uri, embedding, created_at)
             VALUES ($1, $2, $3, $4, $5)
-            "#
+            "#,
         )
         .bind(embedding.id)
         .bind(&embedding.project_id)
@@ -182,7 +184,7 @@ impl ImageEmbeddingRepository for PgVectorEmbeddingRepository {
                 r#"
                 INSERT INTO image_embeddings (id, project_id, image_uri, embedding, created_at)
                 VALUES ($1, $2, $3, $4, $5)
-                "#
+                "#,
             )
             .bind(embedding.id)
             .bind(&embedding.project_id)
@@ -203,7 +205,7 @@ impl ImageEmbeddingRepository for PgVectorEmbeddingRepository {
             SELECT id, project_id, image_uri, embedding, created_at
             FROM image_embeddings
             WHERE project_id = $1
-            "#
+            "#,
         )
         .bind(project_id)
         .fetch_all(&self.pool)
@@ -230,7 +232,7 @@ impl ImageEmbeddingRepository for PgVectorEmbeddingRepository {
             SELECT id, project_id, image_uri, embedding, created_at
             FROM image_embeddings
             WHERE image_uri = $1
-            "#
+            "#,
         )
         .bind(image_uri)
         .fetch_optional(&self.pool)
@@ -261,7 +263,7 @@ impl ImageEmbeddingRepository for PgVectorEmbeddingRepository {
             FROM image_embeddings
             ORDER BY embedding <=> $1
             LIMIT $2
-            "#
+            "#,
         )
         .bind(vec)
         .bind(limit as i64)
@@ -345,7 +347,7 @@ pub async fn setup_database(pool: &PgPool) -> Result<()> {
             created_at TIMESTAMPTZ NOT NULL,
             updated_at TIMESTAMPTZ NOT NULL
         )
-        "#
+        "#,
     )
     .execute(pool)
     .await?;
@@ -359,14 +361,14 @@ pub async fn setup_database(pool: &PgPool) -> Result<()> {
             embedding vector(768) NOT NULL,
             created_at TIMESTAMPTZ NOT NULL
         )
-        "#
+        "#,
     )
     .execute(pool)
     .await?;
 
     // Create indexes
     sqlx::query(
-        "CREATE INDEX IF NOT EXISTS idx_curation_jobs_project_id ON curation_jobs(project_id)"
+        "CREATE INDEX IF NOT EXISTS idx_curation_jobs_project_id ON curation_jobs(project_id)",
     )
     .execute(pool)
     .await?;
